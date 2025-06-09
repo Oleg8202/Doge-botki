@@ -1,4 +1,4 @@
 python-binance
 pandas
-ta-lib
+ta
 flask
