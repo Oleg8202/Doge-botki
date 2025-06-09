@@ -1,11 +1,10 @@
 import os
-os.system("pip uninstall -y binance && pip install python-binance")
 import time
 import math
 from binance.client import Client
 from binance.enums import *
 import pandas as pd
-import talib
+import ta
 from flask import Flask
 from threading import Thread
 
@@ -18,7 +17,7 @@ client = Client(api_key, api_secret)
 symbol = "DOGEUSDT"
 rsi_period = 14
 rsi_oversold = 30
-rsi_takeprofit = 70  # RSI выше — продаём
+rsi_takeprofit = 70
 trade_amount = 8  # $8
 
 def get_symbol_info():
@@ -50,7 +49,8 @@ def get_klines():
 
 def get_rsi():
     closes = get_klines()
-    rsi = talib.RSI(pd.Series(closes), timeperiod=rsi_period)
+    df = pd.DataFrame({'close': closes})
+    rsi = ta.momentum.RSIIndicator(close=df['close'], window=rsi_period).rsi()
     return rsi.iloc[-1]
 
 def get_price():
@@ -89,7 +89,6 @@ def place_trade():
         return
 
     try:
-        # Покупка
         buy_order = client.order_market_buy(symbol=symbol, quantity=qty)
         print(f"✅ Куплено {qty} DOGE по рынку")
 
@@ -152,7 +151,6 @@ def sell_all_doge():
     else:
         print("❌ Недостаточно DOGE для продажи при RSI > 70")
 
-# 🔁 Главный цикл
 def run_bot():
     while True:
         try:
@@ -176,7 +174,7 @@ def run_bot():
 
         time.sleep(60)
 
-# 🚀 Flask-сервер для UptimeRobot, чтобы бот не спал
+# 🚀 Flask-сервер для UptimeRobot
 app = Flask(__name__)
 
 @app.route('/')
@@ -186,6 +184,5 @@ def home():
 def run_server():
     app.run(host='0.0.0.0', port=8080)
 
-# 🧵 Запускаем бота и сервер в отдельных потоках
 Thread(target=run_bot).start()
 Thread(target=run_server).start()
